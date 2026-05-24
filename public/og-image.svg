@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Ras OS preview image">
+  <rect width="1200" height="630" fill="#006b6b" />
+  <rect width="1200" height="630" fill="url(#dots)" opacity="0.34" />
+  <defs>
+    <pattern id="dots" width="16" height="16" patternUnits="userSpaceOnUse">
+      <circle cx="8" cy="8" r="1" fill="#001a24" opacity="0.22" />
+    </pattern>
+    <linearGradient id="titleBar" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1084d0" />
+      <stop offset="100%" stop-color="#000080" />
+    </linearGradient>
+  </defs>
+  <rect x="70" y="70" width="1060" height="490" rx="14" fill="#c0c0c0" stroke="#ffffff" stroke-width="4" />
+  <rect x="70" y="70" width="1060" height="56" rx="14" fill="url(#titleBar)" />
+  <circle cx="106" cy="98" r="14" fill="#fff" />
+  <text x="140" y="108" fill="#fff" font-family="VT323, monospace" font-size="42">Ras OS v1.0</text>
+  <text x="140" y="170" fill="#000080" font-family="'Press Start 2P', monospace" font-size="36">Retro OS Desktop</text>
+  <text x="140" y="230" fill="#000" font-family="'Share Tech Mono', monospace" font-size="26">Game hosting, Linux, PCB design, and browser toys</text>
+  <rect x="140" y="290" width="300" height="170" rx="10" fill="#008080" stroke="#808080" stroke-width="4" />
+  <rect x="470" y="290" width="310" height="170" rx="10" fill="#d9d9d9" stroke="#808080" stroke-width="4" />
+  <rect x="810" y="290" width="250" height="170" rx="10" fill="#d9d9d9" stroke="#808080" stroke-width="4" />
+  <text x="190" y="350" fill="#fff" font-family="VT323, monospace" font-size="34">🖥️ About Me</text>
+  <text x="515" y="350" fill="#000" font-family="VT323, monospace" font-size="34">📁 Projects</text>
+  <text x="845" y="350" fill="#000" font-family="VT323, monospace" font-size="34">⚙️ Skills.exe</text>
+  <rect x="70" y="564" width="1060" height="18" rx="0" fill="#c0c0c0" stroke="#ffffff" stroke-width="0" />
+  <text x="1040" y="591" fill="#000" font-family="VT323, monospace" font-size="28" text-anchor="end">Best viewed on desktop</text>
+</svg>

@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=VT323&display=swap');
+
+:root {
+  --ras-teal: #006b6b;
+  --ras-deep: #003b4a;
+  --ras-ink: #001a24;
+  --win-silver: #c0c0c0;
+  --win-blue: #000080;
+  --win-blue-light: #1084d0;
+  --win-white: #ffffff;
+  --win-dark: #808080;
+  --win-black: #000000;
+  --ras-accent: #00bfbf;
+
+  font-family: 'Share Tech Mono', monospace;
+  font-synthesis: none;
+  color: var(--win-white);
+  background: var(--ras-teal);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100svh;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}

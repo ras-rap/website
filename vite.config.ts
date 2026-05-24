@@ -2,6 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { loadSteamRecentGames, resolveSteamRecentGamesCount } from './src/server/steamRecentGames'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 const writeJson = (res: { statusCode: number; setHeader: (name: string, value: string) => void; end: (chunk: string) => void }, statusCode: number, payload: unknown) => {
   res.statusCode = statusCode
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
@@ -48,16 +50,13 @@ const createSteamMiddleware = () => {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    {
-      name: 'steam-api-middleware',
-      configureServer(server) {
-        server.middlewares.use(createSteamMiddleware())
-      },
-      configurePreviewServer(server) {
-        server.middlewares.use(createSteamMiddleware())
-      },
+  plugins: [react(), {
+    name: 'steam-api-middleware',
+    configureServer(server) {
+      server.middlewares.use(createSteamMiddleware())
     },
-  ],
+    configurePreviewServer(server) {
+      server.middlewares.use(createSteamMiddleware())
+    },
+  }, cloudflare()],
 })

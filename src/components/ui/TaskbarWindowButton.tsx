@@ -25,7 +25,7 @@ export function TaskbarWindowButton({
         onClick()
       }}
     >
-      <Icon className="taskbar-window-btn__icon" size={16} stroke={1.9} aria-hidden="true" />
+      <Icon className="taskbar-window-btn__icon" size={16} stroke={1.9} aria-hidden />
       {!compact ? <span className="taskbar-window-btn__title">{title}</span> : null}
     </button>
   )

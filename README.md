@@ -77,5 +77,14 @@ export default defineConfig([
 Create a `.env.local` file from `.env.example`.
 
 - `VITE_DISCORD_USER_ID`: optional, enables the Discord presence widget.
-- `STEAM_API_KEY`: required for the recent Steam games endpoint (`/api/steam/recent-games`). This key stays server-side via Vite middleware and is not exposed to the browser bundle.
+- `STEAM_API_KEY`: required for the recent Steam games endpoint (`/api/steam/recent-games`). This key stays server-side in dev middleware and in the Cloudflare Pages Function, and is not exposed to the browser bundle.
 - `STEAM_ID`: optional Steam profile ID. Defaults to `76561198119046479`.
+
+## Cloudflare Pages
+
+This repo can be deployed to Cloudflare Pages with the frontend built as a static site and the Steam route handled by a Pages Function.
+
+- Build command: `bun run build`
+- Output directory: `dist`
+- Function route: `functions/api/steam/recent-games.ts` serves `/api/steam/recent-games`
+- Set `STEAM_API_KEY` and optional `STEAM_ID` in the Pages environment variables for production

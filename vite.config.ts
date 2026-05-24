@@ -1,12 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-
-type SteamRecentlyPlayedGame = {
-  appid: number
-  name: string
-  playtime_forever: number
-  playtime_2weeks?: number
-}
+import { loadSteamRecentGames, resolveSteamRecentGamesCount } from './src/server/steamRecentGames'
 
 const writeJson = (res: { statusCode: number; setHeader: (name: string, value: string) => void; end: (chunk: string) => void }, statusCode: number, payload: unknown) => {
   res.statusCode = statusCode
@@ -41,64 +35,11 @@ const createSteamMiddleware = () => {
     }
 
     const parsedUrl = new URL(requestUrl, 'http://localhost')
-    const countParam = Number(parsedUrl.searchParams.get('count') ?? '5')
-    const count = Number.isFinite(countParam) ? Math.min(Math.max(Math.floor(countParam), 1), 20) : 5
-
-    const steamRecentUrl = `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key=${encodeURIComponent(apiKey)}&steamid=${encodeURIComponent(steamId)}&count=${count}`
+    const count = resolveSteamRecentGamesCount(parsedUrl.searchParams.get('count'))
 
     try {
-      const recentResponse = await fetch(steamRecentUrl)
-
-      if (!recentResponse.ok) {
-        throw new Error('Steam API request failed.')
-      }
-
-      const recentPayload = (await recentResponse.json()) as {
-        response?: {
-          games?: SteamRecentlyPlayedGame[]
-        }
-      }
-
-      const recentGames = recentPayload.response?.games ?? []
-
-      const games = await Promise.all(
-        recentGames.map(async (game) => {
-          let iconUrl: string | null = null
-
-          try {
-            const detailsResponse = await fetch(`https://store.steampowered.com/api/appdetails?appids=${game.appid}&l=en`)
-
-            if (detailsResponse.ok) {
-              const detailsPayload = (await detailsResponse.json()) as Record<
-                string,
-                {
-                  success?: boolean
-                  data?: {
-                    header_image?: string
-                    capsule_image?: string
-                  }
-                }
-              >
-              const details = detailsPayload[String(game.appid)]
-              iconUrl = details?.data?.header_image ?? details?.data?.capsule_image ?? null
-            }
-          } catch {
-            iconUrl = null
-          }
-
-          return {
-            appid: game.appid,
-            name: game.name,
-            playtimeForeverHours: Number((game.playtime_forever / 60).toFixed(1)),
-            playtime2WeeksHours: Number(((game.playtime_2weeks ?? 0) / 60).toFixed(1)),
-            iconUrl,
-          }
-        }),
-      )
-
-      writeJson(res, 200, {
-        games,
-      })
+      const result = await loadSteamRecentGames({ apiKey, steamId, count })
+      writeJson(res, 200, result)
     } catch {
       writeJson(res, 502, { error: 'Could not load recent Steam games.' })
     }

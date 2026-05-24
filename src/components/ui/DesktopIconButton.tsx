@@ -31,7 +31,7 @@ export function DesktopIconButton({
         onOpen()
       }}
     >
-      <Icon className="desktop-icon__emoji" size={36} stroke={1.75} aria-hidden="true" />
+      <Icon className="desktop-icon__emoji" size={36} stroke={1.75} aria-hidden />
       <span className="desktop-icon__label">{title}</span>
     </button>
   )

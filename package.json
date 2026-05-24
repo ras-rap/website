@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "bun run build && wrangler dev",
     "worker:dev": "wrangler dev --config worker/wrangler.toml",
-    "worker:deploy": "wrangler deploy --config worker/wrangler.toml"
+    "worker:deploy": "wrangler deploy --config worker/wrangler.toml",
+    "deploy": "bun run build && wrangler deploy"
   },
   "dependencies": {
     "@tabler/icons-react": "^3.44.0",
@@ -18,6 +19,7 @@
     "react-rnd": "^10.5.3"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.38.0",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
@@ -30,6 +32,6 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.94.0"
   }
 }

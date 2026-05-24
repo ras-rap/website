@@ -88,3 +88,14 @@ This repo can be deployed to Cloudflare Pages with the frontend built as a stati
 - Output directory: `dist`
 - Function route: `functions/api/steam/recent-games.ts` serves `/api/steam/recent-games`
 - Set `STEAM_API_KEY` and optional `STEAM_ID` in the Pages environment variables for production
+
+## Standalone Worker
+
+If your Pages project says it has no Workers bound, deploy the Steam API as a separate Cloudflare Worker instead and bind it to the `/api/steam/recent-games` route.
+
+- Worker entrypoint: `worker/src/index.ts`
+- Worker config: `worker/wrangler.toml`
+- Dev command: `bun run worker:dev`
+- Deploy command: `bun run worker:deploy`
+- Set `STEAM_API_KEY` and optional `STEAM_ID` on the Worker runtime
+- Bind the Worker to `/api/steam/recent-games` so the frontend can keep calling the same relative URL

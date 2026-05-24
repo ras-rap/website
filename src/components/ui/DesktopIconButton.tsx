@@ -1,3 +1,5 @@
+import type { AppIconComponent } from '../../desktopData'
+
 export function DesktopIconButton({
   title,
   icon,
@@ -7,12 +9,14 @@ export function DesktopIconButton({
   onOpen,
 }: {
   title: string
-  icon: string
+  icon: AppIconComponent
   selected: boolean
   compact: boolean
   onSelect: () => void
   onOpen: () => void
 }) {
+  const Icon = icon
+
   return (
     <button
       type="button"
@@ -27,9 +31,7 @@ export function DesktopIconButton({
         onOpen()
       }}
     >
-      <span className="desktop-icon__emoji" aria-hidden="true">
-        {icon}
-      </span>
+      <Icon className="desktop-icon__emoji" size={36} stroke={1.75} aria-hidden="true" />
       <span className="desktop-icon__label">{title}</span>
     </button>
   )

@@ -1,3 +1,16 @@
+import {
+  IconCalculator,
+  IconDeviceDesktop,
+  IconDeviceGamepad2,
+  IconFolder,
+  IconMail,
+  IconSettings,
+  IconTerminal2,
+  IconTrash,
+} from '@tabler/icons-react'
+
+import type { ComponentType } from 'react'
+
 export type WindowId =
   | 'about'
   | 'projects'
@@ -31,6 +44,13 @@ export type WindowConfig = {
   defaultX: number
   defaultY: number
 }
+
+export type AppIconComponent = ComponentType<{
+  size?: number
+  stroke?: number
+  className?: string
+  'aria-hidden'?: boolean
+}>
 
 export type Action =
   | { type: 'open'; id: WindowId }
@@ -76,7 +96,7 @@ export const windowConfigs: WindowConfig[] = [
   { id: 'games', title: 'Games', defaultWidth: 560, defaultHeight: 360, defaultX: 190, defaultY: 80 },
   { id: 'skills', title: 'Skills.exe', defaultWidth: 500, defaultHeight: 620, defaultX: 110, defaultY: 80 },
   { id: 'contact', title: 'Contact', defaultWidth: 340, defaultHeight: 260, defaultX: 130, defaultY: 100 },
-  { id: 'terminal', title: 'Terminal', defaultWidth: 560, defaultHeight: 360, defaultX: 210, defaultY: 65 },
+  { id: 'terminal', title: 'Terminal', defaultWidth: 700, defaultHeight: 700, defaultX: 210, defaultY: 65 },
   { id: 'calculator', title: 'Calculator', defaultWidth: 320, defaultHeight: 360, defaultX: 250, defaultY: 120 },
   { id: 'recycle', title: 'Recycle Bin', defaultWidth: 315, defaultHeight: 275, defaultX: 150, defaultY: 120 },
 ]
@@ -85,15 +105,15 @@ export const windowDefaults = Object.fromEntries(
   windowConfigs.map(({ id, defaultWidth, defaultHeight, defaultX, defaultY }) => [id, { defaultWidth, defaultHeight, defaultX, defaultY }]),
 ) as Record<WindowId, { defaultWidth: number; defaultHeight: number; defaultX: number; defaultY: number }>
 
-export const icons: Record<WindowId, string> = {
-  about: '🖥️',
-  projects: '📁',
-  games: '🎮',
-  skills: '⚙️',
-  contact: '📨',
-  terminal: '⌨️',
-  calculator: '🧮',
-  recycle: '🗑️',
+export const icons: Record<WindowId, AppIconComponent> = {
+  about: IconDeviceDesktop,
+  projects: IconFolder,
+  games: IconDeviceGamepad2,
+  skills: IconSettings,
+  contact: IconMail,
+  terminal: IconTerminal2,
+  calculator: IconCalculator,
+  recycle: IconTrash,
 }
 
 export const projectRows = [

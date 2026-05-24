@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { Rnd } from 'react-rnd'
 import './App.css'
 import {
@@ -27,6 +27,7 @@ import { TaskbarPresence } from './components/widgets/TaskbarPresence'
 import { CalendarPopover as CalendarPopoverWidget } from './components/widgets/CalendarPopover'
 
 function App() {
+  const BOOT_FLAG_KEY = 'ras-95-boot-complete'
   const discordUserId = (import.meta.env.VITE_DISCORD_USER_ID ?? '').trim()
   const [state, dispatch] = useReducer(reducer, initialState)
   const [selectedIcon, setSelectedIcon] = useState<WindowId | null>('about')
@@ -36,6 +37,13 @@ function App() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
   const [soundEnabled, setSoundEnabled] = useState(false)
   const [shutdownState, setShutdownState] = useState<'idle' | 'shutting-down' | 'complete'>('idle')
+  const [bootPhase, setBootPhase] = useState<'booting' | 'login' | 'done'>(() => {
+    try {
+      return window.sessionStorage.getItem(BOOT_FLAG_KEY) === '1' ? 'done' : 'booting'
+    } catch {
+      return 'booting'
+    }
+  })
   const [closingWindows, setClosingWindows] = useState<WindowId[]>([])
   const [lanyardData, setLanyardData] = useState<LanyardData | null>(null)
   const [lanyardError, setLanyardError] = useState<string | null>(null)
@@ -44,9 +52,49 @@ function App() {
   const [presenceNow, setPresenceNow] = useState(() => Date.now())
   const [clockNow, setClockNow] = useState(() => new Date())
   const [calendarOpen, setCalendarOpen] = useState(false)
+  const [secretBanner, setSecretBanner] = useState<string | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const closeTimersRef = useRef<Partial<Record<WindowId, number>>>({})
   const presenceSignatureRef = useRef<string | null>(null)
+  const secretBannerTimerRef = useRef<number | null>(null)
+
+  const playBootTone = useCallback((kind: 'boot' | 'login' | 'success') => {
+    if (!soundEnabled || typeof window.AudioContext === 'undefined') {
+      return
+    }
+
+    const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+
+    if (!AudioContextConstructor) {
+      return
+    }
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContextConstructor()
+    }
+
+    const audioContext = audioContextRef.current
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+    const frequencies: Record<'boot' | 'login' | 'success', number> = {
+      boot: 280,
+      login: 520,
+      success: 760,
+    }
+
+    oscillator.type = 'triangle'
+    oscillator.frequency.value = frequencies[kind]
+    gainNode.gain.value = 0.0001
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    const now = audioContext.currentTime
+    gainNode.gain.exponentialRampToValueAtTime(0.06, now + 0.01)
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.18)
+    oscillator.start(now)
+    oscillator.stop(now + 0.2)
+  }, [soundEnabled])
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -66,6 +114,44 @@ function App() {
       window.removeEventListener('resize', handleResize)
     }
   }, [])
+
+  useEffect(() => {
+    if (bootPhase === 'done') {
+      try {
+        window.sessionStorage.setItem(BOOT_FLAG_KEY, '1')
+      } catch {
+        // Ignore storage failures and continue without persistence.
+      }
+
+      return
+    }
+
+    const loginDelay = bootPhase === 'booting' ? 1100 : 0
+    const completeDelay = bootPhase === 'booting' ? 2300 : 1200
+
+    const loginTimerId = window.setTimeout(() => {
+      if (bootPhase === 'booting') {
+        setBootPhase('login')
+        playBootTone('login')
+      }
+    }, loginDelay)
+
+    const doneTimerId = window.setTimeout(() => {
+      setBootPhase('done')
+      playBootTone('success')
+
+      try {
+        window.sessionStorage.setItem(BOOT_FLAG_KEY, '1')
+      } catch {
+        // Ignore storage failures and continue without persistence.
+      }
+    }, completeDelay)
+
+    return () => {
+      window.clearTimeout(loginTimerId)
+      window.clearTimeout(doneTimerId)
+    }
+  }, [bootPhase, playBootTone])
 
   const isCompactLayout = viewportWidth < 768
   const isTinyLayout = viewportWidth < 480
@@ -184,35 +270,47 @@ function App() {
     playTone('alert')
   }
 
-  const triggerShutdown = () => {
-    setStartMenuOpen(false)
+  const showSecretBanner = (message: string) => {
+    if (secretBannerTimerRef.current) {
+      window.clearTimeout(secretBannerTimerRef.current)
+    }
+
+    setSecretBanner(message)
+    playTone('alert')
+
+    secretBannerTimerRef.current = window.setTimeout(() => {
+      setSecretBanner(null)
+      secretBannerTimerRef.current = null
+    }, 2800)
+  }
+
+  const rebootSystem = () => {
     setShutdownState('shutting-down')
     playTone('shutdown')
 
     window.setTimeout(() => {
-      setShutdownState('complete')
-    }, 800)
+      try {
+        window.sessionStorage.removeItem(BOOT_FLAG_KEY)
+      } catch {
+        // Ignore storage failures; the reboot still proceeds.
+      }
+
+      window.location.reload()
+    }, 700)
   }
 
   const recoverFromShutdown = () => {
-    setShutdownState('idle')
-    playTone('open')
+    rebootSystem()
+  }
+
+  const triggerShutdown = () => {
+    setStartMenuOpen(false)
+    rebootSystem()
   }
 
   const visibleTaskbarWindows = useMemo(
     () => windowConfigs.filter(({ id }) => state.windows[id].open),
     [state.windows],
-  )
-
-  useEffect(
-    () => () => {
-      Object.values(closeTimersRef.current).forEach((timerId) => {
-        if (timerId) {
-          window.clearTimeout(timerId)
-        }
-      })
-    },
-    [],
   )
 
   useEffect(() => {
@@ -329,19 +427,38 @@ function App() {
 
   return (
     <div
-      className="desktop"
+      className={`desktop${isCompactLayout ? ' is-compact' : ''}${secretBanner ? ' has-secret' : ''}`}
       onClick={() => {
         setStartMenuOpen(false)
         setCalendarOpen(false)
         setPresencePanelOpen(false)
       }}
     >
+      {bootPhase !== 'done' ? (
+        <div className={`boot-screen boot-screen--${bootPhase}`} aria-label="Boot screen" aria-live="polite">
+          <div className="boot-screen__window">
+            <div className="boot-screen__title">Ras 95 {isCompactLayout ? 'Mobile' : 'Desktop'}</div>
+            <div className="boot-screen__body">
+              {bootPhase === 'booting' ? 'Starting system components...' : 'Logging in as ras...'}
+            </div>
+            <div className="boot-screen__progress" aria-hidden="true">
+              <span />
+            </div>
+            <div className="boot-screen__footer">
+              {bootPhase === 'booting'
+                ? 'Initializing workspace'
+                : `Loading ${isCompactLayout ? 'mobile' : 'desktop'} profile`}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {shutdownState !== 'idle' ? (
         <button type="button" className="shutdown-overlay" onClick={recoverFromShutdown}>
           {shutdownState === 'shutting-down' ? (
             <>
-              <div className="shutdown-overlay__title">Shutting down Ras OS...</div>
-              <div className="shutdown-overlay__body">Please wait while the system powers down.</div>
+              <div className="shutdown-overlay__title">Rebooting Ras OS...</div>
+              <div className="shutdown-overlay__body">Please wait while the system restarts.</div>
             </>
           ) : (
             <>
@@ -352,10 +469,29 @@ function App() {
         </button>
       ) : null}
 
+      {secretBanner ? (
+        <div className="secret-banner" role="status" aria-live="polite">
+          <span className="secret-banner__label">Secret</span>
+          <span>{secretBanner}</span>
+        </div>
+      ) : null}
+
       <main className="desktop__surface" aria-label="Ras OS desktop">
         {isCompactLayout ? (
+          <header className="mobile-status-bar" aria-label="Mobile status bar">
+            <span className="mobile-status-bar__brand">Ras 95 Mobile</span>
+            <span className="mobile-status-bar__clock">{clock}</span>
+            <span className="mobile-status-bar__indicators" aria-hidden="true">
+              <span>◔</span>
+              <span>◷</span>
+              <span>▮▮▮</span>
+            </span>
+          </header>
+        ) : null}
+
+        {isCompactLayout ? (
           <div className="desktop__notice" role="note" aria-label="Mobile notice">
-            Best viewed on desktop. Tap an icon to open a window.
+            Ras 95 Mobile. Tap an app to open it.
           </div>
         ) : null}
 
@@ -447,7 +583,13 @@ function App() {
                 ) : config.id === 'contact' ? (
                   <ContactWindow />
                 ) : config.id === 'terminal' ? (
-                  <TerminalWindow onLaunchApp={openWindow} onOpenPresence={() => setPresencePanelOpen(true)} />
+                  <TerminalWindow
+                    onLaunchApp={openWindow}
+                    onOpenPresence={() => setPresencePanelOpen(true)}
+                    onSecret={showSecretBanner}
+                    onReboot={rebootSystem}
+                    compact={isCompactLayout}
+                  />
                 ) : config.id === 'calculator' ? (
                   <CalculatorWindow />
                 ) : (
@@ -463,18 +605,22 @@ function App() {
             <div className="start-menu" role="menu" aria-label="Start menu">
               <div className="start-menu__sidebar">Ras OS v0.3</div>
               <div className="start-menu__items">
-                {windowConfigs.map((config) => (
-                  <button
-                    key={config.id}
-                    type="button"
-                    className="start-menu__item"
-                    role="menuitem"
-                    onClick={() => openWindow(config.id)}
-                  >
-                    <span aria-hidden="true">{icons[config.id]}</span>
-                    <span>{config.title}</span>
-                  </button>
-                ))}
+                {windowConfigs.map((config) => {
+                  const Icon = icons[config.id]
+
+                  return (
+                    <button
+                      key={config.id}
+                      type="button"
+                      className="start-menu__item"
+                      role="menuitem"
+                      onClick={() => openWindow(config.id)}
+                    >
+                      <Icon aria-hidden={true} size={16} stroke={1.9} />
+                      <span>{config.title}</span>
+                    </button>
+                  )
+                })}
                 <a
                   className="start-menu__item"
                   role="menuitem"
@@ -483,7 +629,7 @@ function App() {
                   rel="noreferrer"
                   onClick={() => setStartMenuOpen(false)}
                 >
-                  <span aria-hidden="true">🌐</span>
+                  <span aria-hidden="true">◉</span>
                   <span>krakenhosting.net</span>
                 </a>
                 <a
@@ -494,11 +640,11 @@ function App() {
                   rel="noreferrer"
                   onClick={() => setStartMenuOpen(false)}
                 >
-                  <span aria-hidden="true">💻</span>
+                  <span aria-hidden="true">◎</span>
                   <span>GitHub</span>
                 </a>
                 <button type="button" className="start-menu__item is-danger" role="menuitem" onClick={triggerShutdown}>
-                  <span aria-hidden="true">🔌</span>
+                  <span aria-hidden="true">⏻</span>
                   <span>Shut Down...</span>
                 </button>
               </div>
@@ -530,6 +676,7 @@ function App() {
                   icon={icons[config.id]}
                   title={config.title}
                   active={!windowState.minimized}
+                  compact={isTinyLayout}
                   onClick={() => toggleTaskbarWindow(config.id)}
                 />
               )
@@ -584,8 +731,20 @@ function App() {
           className="clock-wrap"
           onMouseEnter={() => setCalendarOpen(true)}
           onMouseLeave={() => setCalendarOpen(false)}
+          onClick={(event) => {
+            event.stopPropagation()
+            if (isCompactLayout) {
+              setCalendarOpen((current) => !current)
+            }
+          }}
         >
-          <div className="clock" aria-label="Clock" tabIndex={0} onFocus={() => setCalendarOpen(true)} onBlur={() => setCalendarOpen(false)}>
+          <div
+            className="clock"
+            aria-label="Clock"
+            tabIndex={0}
+            onFocus={() => setCalendarOpen(true)}
+            onBlur={() => setCalendarOpen(false)}
+          >
             {clock}
           </div>
           {calendarOpen ? <CalendarPopoverWidget now={clockNow} /> : null}
